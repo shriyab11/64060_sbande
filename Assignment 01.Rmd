@@ -1,0 +1,19 @@
+---
+title: "FML Assignment 1"
+author: "Shriya Bande"
+date: "2023-09-09"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+cars %>%
+mutate(dist_in_meters=dist*1000) %>%
+  summary(cars)
+plot(cars$speed)
+```
