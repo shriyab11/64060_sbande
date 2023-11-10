@@ -1,0 +1,209 @@
+---
+title: "FML_Assignment 4_Clustering"
+author: "Shriya Bande"
+date: "2023-11-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#Importing data
+```{r}
+library(readr)
+Pharm = read.csv("C:/Users/sband/Downloads/Pharmaceuticals (2).csv")
+df= Pharm
+```
+
+#Viewing the summary of the dataset
+```{r}
+summary(df)
+```
+
+#Attaching required libraries
+```{r}
+library(tinytex)
+library(tidyverse)
+library(ISLR)
+library(flexclust)
+library(FactoMineR)
+library(ggcorrplot)
+library(ggplot2)
+library(factoextra)
+```
+
+**Question 1**
+Use only the numerical variables (1 to 9) to cluster the 21 firms. Justify the various choices made in conducting the cluster analysis, such as weights for different variables, the specific clustering algorithm(s) used, the number of clusters formed, and so on.
+
+#Subsetting the data
+```{r}
+names(df)
+```
+
+
+
+```{r}
+dataset=df[,c(1,3:11)]
+row.names(dataset)=dataset[,1]
+dataset=dataset[,-1]
+head(dataset)
+```
+
+
+
+#Normalizing the dataset
+```{r}
+dataset2 = scale(dataset)
+distance=get_dist(dataset)
+fviz_dist(distance)
+```
+#Using euclidean distance formula which is given by: d=√((x_2-x)1)^2+(y_2-y_1 )^2 )
+```{r}
+Corr=cor(dataset2)
+ggcorrplot(Corr,outline.color = "black",lab = TRUE,hc.order = TRUE,type = "full")
+```
+#Installing factoextra and cluster to plot elbow chart and silhouette chart
+```{r}
+library(cluster)
+library(factoextra)
+```
+
+
+#Finding the number of clusters using elbow chart 
+```{r}
+set.seed(100)
+fviz_nbclust(dataset2, kmeans, method = "wss")
+```
+
+
+
+#After looking at the elbow chart, it shows that the optimal number of clusters is 2 or 7
+#Finding the number of clusters using silhouette method
+```{r}
+fviz_nbclust(dataset2,kmeans,method = "silhouette")
+```
+#After looking at the elbow chart, it shows that the optimal number of clusters is 5. Therefore, we will try and find an optimal value between 2 and 7 per the results gathered from elbow and silhouette method respectively.
+
+
+
+```{r}
+k2<-kmeans(dataset2,centers =2,nstart=25)
+k3<-kmeans(dataset2,centers =3,nstart=25)
+k4<-kmeans(dataset2,centers =4,nstart=25)
+k5<-kmeans(dataset2,centers =5,nstart=25)
+k6<-kmeans(dataset2,centers =6,nstart=25)
+k7<-kmeans(dataset2,centers =7,nstart=25)
+p1<-fviz_cluster(k2,geom = "point", data=dataset2)+ggtitle("k=2")
+p2<-fviz_cluster(k3,geom = "point", data=dataset2)+ggtitle("k=3")
+p3<-fviz_cluster(k4,geom = "point", data=dataset2)+ggtitle("k=4")
+p4<-fviz_cluster(k5,geom = "point", data=dataset2)+ggtitle("k=5")
+p5<-fviz_cluster(k6,geom = "point", data=dataset2)+ggtitle("k=6")
+p6<-fviz_cluster(k7,geom = "point", data=dataset2)+ggtitle("k=7")
+```
+
+
+#Attaching library gridExtra to combine the clusters
+```{r}
+library(gridExtra)
+grid.arrange(p1,p2,p3,p4,p5,p6)
+```
+
+#The optimal number of clusters was determined using both the elbow method and the silhouette method. The elbow method suggested K=2 or K=7, while the silhouette method pointed to K=5 as a balanced choice. The final selection of K=5 was based on achieving a reasonable trade-off between granularity and meaningful differentiation within the dataset.
+
+
+
+#No specific weights were assigned to individual variables. Instead, the dataset was normalized using the scale function to ensure that all variables contributed equally to the clustering process. Normalization was applied to center variables around a mean of 0 and a standard deviation of 1, thereby preventing any undue influence of one variable over another.
+
+## Question B: Interpret the clusters with respect to the numerical variables used in forming the clusters. 
+# after reviewing the clusters, K = 5 seems appropriate as per the grouping. 
+
+#using K=5 for the analysis
+
+
+
+
+```{r}
+k5=kmeans(dataset2, centers = 5, nstart = 25)
+k5$size
+k5$cluster
+k5$centers
+k5$withinss
+fviz_cluster(k5, data = dataset2)
+```
+
+** Ques 2**
+
+Interpret the clusters with respect to the numerical variables used in forming the clusters. Is there a pattern in the clusters with respect to the numerical variables (10 to 12)? (those not used in forming the clusters)
+
+
+The data is segmented into five distinct clusters. Cluster #5 comprises four companies with both high net profit margins and substantial asset turnover, establishing them as credible institutions. In contrast, Cluster #1 consists of three companies characterized by a net profit margin of -1.32. These entities rely more on leveraging (1.36) and less on equities (-0.61).
+
+
+
+#Plotting graphs of data grouped in clusters
+
+
+
+
+```{r}
+Centroid <- data.frame(k5$centers) %>% rowid_to_column() %>% gather('Columns', 'Centers', -1)
+print(Centroid)
+ggplot(Centroid, aes(x = Columns, y = Centers, color = as.factor(rowid))) + geom_line(aes(group = as.factor(rowid))) + geom_point()
+```
+
+
+
+Ques - Is there a pattern in the clusters with respect to the numerical variables (10 to 12)? 
+
+#Considering the last three variables; median_recommendation, location, and exchange
+
+
+
+
+```{r}
+pattern <- df%>% select(c(12,13,14)) %>% mutate(Cluster = k5$cluster)
+print(pattern)
+```
+
+
+
+#identifying if there are any trends 
+
+```{r}
+Median_Recommenation <- ggplot(pattern, mapping = aes(factor(Cluster), fill=Median_Recommendation)) + geom_bar(position = 'dodge') + labs(x='Clusters', y='Frequence')
+Location <- ggplot(pattern, mapping = aes(factor(Cluster), fill=Location)) + geom_bar(position = 'dodge') + labs(x='Clusters', y='Frequence')
+Exchange <- ggplot(pattern, mapping = aes(factor(Cluster), fill=Exchange)) + geom_bar(position = 'dodge') + labs(x='Clusters', y='Frequence')
+grid.arrange(Median_Recommenation,Location,Exchange)
+```
+
+
+
+```{r}
+#A discernible pattern is observed in the clusters concerning numerical variables (10 to 12):
+
+#    Median_Recommendation: Clusters 2 and 3 primarily consist of companies with "Moderate Buy" and "Strong Buy" recommendations, suggesting growth potential. Cluster 5 predominantly comprises companies with "Hold" recommendations, indicating stability and profitability.
+
+#    Location: Cluster 1 primarily consists of companies from the US, listed on various exchanges. Cluster 2 includes companies from the US, UK, and Switzerland, all listed on NYSE, indicating moderate risk and potential growth. Cluster 3 includes companies from Canada and the US, listed on NYSE, reflecting some growth potential. Cluster 4 contains companies from France, Germany, and the US investing in NYSE, indicating the highest risk. Cluster 5 comprises companies from the US and the UK listed on NYSE, representing stable and profitable companies.
+
+#   Exchange: All clusters are predominantly associated with companies listed on NYSE, indicating its significance in the dataset. Variations in exchanges occur primarily within each cluster, suggesting that the location variable plays a more influential role in determining clusters.
+```
+
+
+**Question 3**
+
+Provide an appropriate name for each cluster using any or all of the variables in the dataset.
+
+
+```{r}
+# Cluster 1: "Steadfast Enterprises" - Encompassing companies with minimal risk exposure and consistent financial performance, marked by a substantial proportion of market capitalization invested in assets.
+
+# Cluster 2: "Promising Growth Ventures" - Featuring companies poised for growth with a balanced risk profile, evident through significant market capitalization and commendable financial performance.
+
+# Cluster 3: "High-Potential, High-Risk Ventures" - This cluster includes companies exhibiting substantial growth potential but with an elevated level of associated risk.
+
+# Cluster 4: "Venturous Enterprises" - Comprising companies inclined to take calculated risks for potential growth, distinguished by higher asset turnover and associated risk.
+
+# Cluster 5: "Steady and Lucrative Enterprises" - These companies showcase stability, profitability, and a lower degree of risk in their operations.
+
+# These cluster designations are derived from a blend of financial attributes and insights, providing a fitting depiction of each cluster's unique characteristics.
+```
